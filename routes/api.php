@@ -1,6 +1,9 @@
 <?php
 
 @include('teacherapi.php');
+if (file_exists(base_path('routes/gfeeapi.php'))) {
+    require base_path('routes/gfeeapi.php');
+}
 
 Route::post('/parent/login', 'Api\TokenController@issueToken');
 
@@ -275,3 +278,11 @@ Route::get('/events/show/details/{id}','Api\EventsController@showdetails');
 
 
 
+
+if (file_exists(base_path('routes/gvideoroomapi.php'))) {
+    require base_path('routes/gvideoroomapi.php');
+}
+
+if (file_exists(base_path('routes/gtimetableteacherapi.php'))) {
+    require base_path('routes/gtimetableteacherapi.php');
+}

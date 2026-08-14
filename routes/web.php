@@ -13,7 +13,9 @@ Route::get('/', function () {
 
 Auth::routes();
 
-
+if (file_exists(base_path('routes/gfee.php'))) {
+    require base_path('routes/gfee.php');
+}
 
 //Impersonate as teacher
 Route::get('/teacher/{id}/impersonate', 'Auth\ImpersonateController@impersonate')->middleware('auth', 'schooladmin');
@@ -58,3 +60,23 @@ Route::post( '/{slug}/admission-form/validationPersonalDetail', 'AdmissionContro
 
 
 
+
+if (file_exists(base_path('routes/gcertificate.php'))) {
+    require base_path('routes/gcertificate.php');
+}
+
+if (file_exists(base_path('routes/ginventory.php'))) {
+    require base_path('routes/ginventory.php');
+}
+
+if (file_exists(base_path('routes/gvideoroom.php'))) {
+    require base_path('routes/gvideoroom.php');
+}
+
+if (file_exists(base_path('routes/gquiz.php'))) {
+    require base_path('routes/gquiz.php');
+}
+
+if (file_exists(base_path('routes/gtimetable.php'))) {
+    require base_path('routes/gtimetable.php');
+}
