@@ -53,6 +53,7 @@
                         <th class="text-left text-sm px-2 py-2 text-grey-darker">Term</th>
                         <th class="text-left text-sm px-2 py-2 text-grey-darker">Amount</th>
                         <th class="text-left text-sm px-2 py-2 text-grey-darker">Paid On</th>
+                        <th class="text-left text-sm px-2 py-2 text-grey-darker">Payment Type</th>
                         <th class="text-left text-sm px-2 py-2 text-grey-darker">Notify Parents</th>
                         <th class="text-left text-sm px-2 py-2 text-grey-darker">Actions</th>
                     </tr>
@@ -65,7 +66,9 @@
                         </td>
                         <td class="py-3 px-2"><p class="font-semibold text-xs">{{ fee.term }}</p></td>
                         <td class="py-3 px-2"><p class="font-semibold text-xs">{{ fee.amount }}</p></td>
+                     
                         <td class="py-3 px-2"><p class="font-semibold text-xs">{{ fee.paid_on }}</p></td>
+                         <td class="py-3 px-2"><p class="font-semibold text-xs">{{ fee.payment_type }}</p></td>
                         <td class="py-3 px-2"><p class="font-semibold text-xs">{{ fee.notify_parent }}</p></td>
                         <td class="py-3 px-2">
                             <div class="flex items-center">
@@ -96,6 +99,7 @@
                         <th class="text-left text-sm px-2 py-2 text-grey-darker">Title</th>
                         <th class="text-left text-sm px-2 py-2 text-grey-darker">Term</th>
                         <th class="text-left text-sm px-2 py-2 text-grey-darker">Amount</th>
+                        <th class="text-left text-sm px-2 py-2 text-grey-darker">Payment Type</th>
                         <th class="text-left text-sm px-2 py-2 text-grey-darker">Paid On</th>
                         <th class="text-left text-sm px-2 py-2 text-grey-darker">Notify Parents</th>
                     </tr>
@@ -214,6 +218,21 @@
                             </div>
                         </div>
                         <div class="modal-body" v-if="type == 'edit_payment'">
+                            <div class="flex">
+                                <div class="w-full lg:w-1/4">
+                                    <label for="paid_on" class="tw-form-label">Payment Type</label>
+                                </div>
+                                <div class="w-full lg:w-3/4">
+                                    <select name="payment_type" v-model="payment_type" class="tw-form-control w-full">
+                                        <option value="">Select payment</option>
+                                        <option value="cash">Cash</option>
+                                        <option value="bank">Bank</option>
+                                    </select>
+                                    <span v-if="errors.payment_type" class="text-red-500 text-xs font-semibold">{{errors.payment_type[0]}}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-body" v-if="type == 'edit_payment'">
                             <div class="flex items-center">
                                 <div class="w-6">
                                     <input type="checkbox" name="notify_parent" v-model="notify_parent" class="tw-form-control w-full" @click="addNotify($event)">
@@ -253,6 +272,7 @@
                 type:'',
                 errors:[],
                 success:null,
+                payment_type:'',
             }
         },
 
@@ -287,6 +307,7 @@
                     this.editfee = response.data;
                     this.paid_on = response.data.paid_on;
                     this.notify_parent = response.data.notify_parent;
+                    this.payment_type = response.data.payment_type;
                     //console.log(this.editfee);   
                 });
                 this.show = 'edit_'+id;
@@ -362,7 +383,7 @@
 
                 axios.post('/admin/student/fee/reset',formData,{headers: {'Content-Type': 'multipart/form-data'}}).then(response => {     
                     this.success = response.data.success;
-                    window.location.reload();
+                    //window.location.reload();
                 }).catch(error => {
                     this.errors = error.response.data.errors;
                 });
@@ -380,10 +401,13 @@
                 formData.append('paid_on',this.paid_on); 
                 formData.append('notify_parent',this.notify_parent); 
                 formData.append('feePayment_id',feePayment_id);
+                formData.append('payment_type',this.payment_type);
 
-                axios.post('/admin/student/feepayment/add',formData,{headers: {'Content-Type': 'multipart/form-data'}}).then(response => {     
+                axios.post('/admin/student/feepayment/add',formData,{headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
+                    this.closeModal();
                     this.success = response.data.success;
-                    //window.location.reload();
+
+                    this.getData(1);
                 }).catch(error => {
                     this.errors = error.response.data.errors;
                 });
