@@ -18,6 +18,7 @@ use App\Models\NoticeBoard;
 use App\Models\Userprofile;
 use App\Models\ActivityLog;
 use App\Helpers\SiteHelper;
+use App\Models\Standard;
 use App\Models\Attendance;
 use App\Models\Bulletin;
 use App\Models\Feedback;
@@ -70,6 +71,32 @@ trait Dashboard
 
         $array['nonteachingCount']   = User::where([['status','!=','exit']])->where('school_id',$school_id)->whereIn('usergroup_id',[8,10,11,12,13])->count();
 
+
+        $array['studentAbsentToday']    = Attendance::ByRole(6)->where([
+                                                ['school_id',$school_id],
+                                                ['academic_year_id',$academic_year->id],
+                                                ['date',date('Y-m-d')],
+                                                ['status',0]
+                                            ])->count();
+        $array['studentPresentToday']   = max(0,$array['studentCount'] - $array['studentAbsentToday']);
+
+        $array['teachingStaffAbsentToday']      = Attendance::ByRole(5)->where([
+                                                        ['school_id',$school_id],
+                                                        ['academic_year_id',$academic_year->id],
+                                                        ['date',date('Y-m-d')],
+                                                        ['status',0]
+                                                    ])->count();
+        $array['teachingStaffPresentToday']     = max(0,$array['teacherCount'] - $array['teachingStaffAbsentToday']);
+
+        $array['nonTeachingStaffAbsentToday']   = Attendance::whereHas('user', function($query) {
+                                                        $query->whereIn('usergroup_id',[8,10,11,12,13]);
+                                                    })->where([
+                                                        ['school_id',$school_id],
+                                                        ['academic_year_id',$academic_year->id],
+                                                        ['date',date('Y-m-d')],
+                                                        ['status',0]
+                                                    ])->count();
+        $array['nonTeachingStaffPresentToday']  = max(0,$array['nonteachingCount'] - $array['nonTeachingStaffAbsentToday']);
 
         $array['maleCount']      = Cache::remember('maleCount_'.$school_id, env('CACHE_TIME'), function () use ($school_id)                          {
                                   return User::where([['status','!=','exit']])->BySchool($school_id)->ByRole(6)->ByGender('male')->count();
@@ -137,6 +164,98 @@ trait Dashboard
                                 $query->where('academic_year_id',$academic_year->id);
                               })->where('start_time','>=',date('Y-m-d H:i:s'))->orderBy('start_time','DESC')->take(10)->get()->groupBy('start_time'); 
     }
+
+        $array['todaysCollectionAmount']       = 0;
+        $array['todaysCollectionCount']        = 0;
+        $array['monthCollectionAmount']        = 0;
+        $array['monthCollectionLabel']         = Carbon::now()->format('M Y');
+        $array['outstandingFeesAmount']        = 0;
+        $array['outstandingFeesStudentCount']  = 0;
+        $array['feeCollectionSummary']         = [];
+
+        if(config('gfee.enabled', false) && class_exists('Gegok12\Fee\Models\FeePayment') && class_exists('Gegok12\Fee\Models\Fee'))
+        {
+            $fees       = \Gegok12\Fee\Models\Fee::where([['school_id',$school_id],['academic_year_id',$academic_year->id]])->get();
+            $feeIds     = $fees->pluck('id');
+
+            $todaysPayments = \Gegok12\Fee\Models\FeePayment::whereIn('fee_id',$feeIds)
+                                ->where('status',1)
+                                ->whereDate('paid_on',Carbon::today())
+                                ->get();
+
+            $array['todaysCollectionAmount']   = $todaysPayments->sum('paid_amount');
+            $array['todaysCollectionCount']    = $todaysPayments->count();
+
+            $monthPayments  = \Gegok12\Fee\Models\FeePayment::whereIn('fee_id',$feeIds)
+                                ->where('status',1)
+                                ->whereBetween('paid_on',[Carbon::now()->startOfMonth(),Carbon::now()->endOfMonth()])
+                                ->get();
+
+            $array['monthCollectionAmount']    = $monthPayments->sum('paid_amount');
+
+            $feeNameById = $fees->pluck('name','id');
+
+            $array['feeCollectionSummary'] = $monthPayments->groupBy(function($payment) use ($feeNameById) {
+                                                return $feeNameById[$payment->fee_id] ?? 'Others';
+                                            })->map(function($payments,$name) {
+                                                return ['label' => $name, 'amount' => $payments->sum('paid_amount')];
+                                            })->values()->toArray();
+
+            $outstandingAmount     = 0;
+            $outstandingUserIds    = [];
+
+            foreach($fees as $fee)
+            {
+                $outstandingAmount += $fee->amount * $fee->UnpaidCount;
+
+                $paidQuery      = \Gegok12\Fee\Models\FeePayment::where('fee_id',$fee->id)->where('status',1);
+                $unpaidQuery    = \Gegok12\Fee\Models\FeePayment::where('fee_id',$fee->id)->where('status',0);
+
+                if($fee->standardLink_id != null)
+                {
+                    $paidQuery->whereHas('user', function($query) use ($fee) {
+                        $query->whereHas('studentAcademicLatest', function($q) use ($fee) {
+                            $q->where('standardLink_id',$fee->standardLink_id);
+                        });
+                    });
+
+                    $unpaidQuery->whereHas('user', function($query) use ($fee) {
+                        $query->whereHas('studentAcademicLatest', function($q) use ($fee) {
+                            $q->where('standardLink_id',$fee->standardLink_id);
+                        });
+                    });
+                }
+
+                $paidUserIds    = $paidQuery->pluck('user_id')->toArray();
+                $unpaidUserIds  = $unpaidQuery->pluck('user_id')->toArray();
+
+                $outstandingUserIds = array_merge($outstandingUserIds, array_diff($unpaidUserIds,$paidUserIds));
+            }
+
+            $array['outstandingFeesAmount']        = $outstandingAmount;
+            $array['outstandingFeesStudentCount']  = count(array_unique($outstandingUserIds));
+        }
+
+        $array['classWiseStrength'] = Cache::remember('classWiseStrength_'.$school_id.'_'.$academic_year->id, env('CACHE_TIME'), function () use ($school_id,$academic_year) {
+                                        $standards = Standard::where('school_id',$school_id)->active()->orderBy('order')->get();
+
+                                        $classWiseStrength = [];
+
+                                        foreach($standards as $standard)
+                                        {
+                                            $count = User::where([['status','!=','exit']])->BySchool($school_id)->ByRole(6)
+                                                        ->whereHas('studentAcademicLatest.standardLink', function($query) use ($standard,$academic_year) {
+                                                            $query->where([['academic_year_id',$academic_year->id],['standard_id',$standard->id]]);
+                                                        })->count();
+
+                                            $classWiseStrength[] = [
+                                                'label' => $standard->standard_name,
+                                                'count' => $count,
+                                            ];
+                                        }
+
+                                        return $classWiseStrength;
+                                    });
 
         $array['standardLinks']  = SiteHelper::getStandardLinkList($school_id);
 

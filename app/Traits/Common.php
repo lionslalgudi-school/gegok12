@@ -61,6 +61,77 @@ trait Common
         return $path;
     }
 
+//     public function uploadFile($folder, $file)
+//     {
+//     try {
+//         if (!$file) {
+//             Log::error('Upload file is NULL');
+//             return '';
+//         }
+
+//         Log::info('Upload debug', [
+//             'class'       => get_class($file),
+//             'is_valid'    => $file->isValid(),
+//             'error'      => $file->getError(),
+//             'error_msg'  => $file->getErrorMessage(),
+//             'real_path'  => $file->getRealPath(),
+//             'pathname'   => $file->getPathname(),
+//             'original'   => $file->getClientOriginalName(),
+//             'folder'     => $folder,
+//         ]);
+
+//         if (!$file->isValid()) {
+//             Log::error('Uploaded file is invalid', [
+//                 'error' => $file->getError(),
+//                 'message' => $file->getErrorMessage(),
+//             ]);
+
+//             return '';
+//         }
+
+//         $realPath = $file->getRealPath();
+
+//         if (empty($realPath) || !file_exists($realPath)) {
+//             Log::error('Uploaded temporary file does not exist', [
+//                 'real_path' => $realPath,
+//             ]);
+
+//             return '';
+//         }
+
+//         return \Storage::disk('public')->putFile($folder, $file);
+
+//     } catch (\Throwable $e) {
+//         Log::error('File upload failed', [
+//             'message' => $e->getMessage(),
+//         ]);
+
+//         return '';
+//     }
+// }
+
+// public function uploadFile($folder, $file)
+// {
+//     try {
+//         if (!$file || !$file->isValid()) {
+//             return '';
+//         }
+
+//         return $file->store(
+//             $folder,
+//             'public'
+//         );
+
+//     } catch (\Throwable $e) {
+
+//         Log::error('UPLOAD ERROR', [
+//             'message' => $e->getMessage(),
+//         ]);
+
+//         return '';
+//     }
+// }
+
     /**
      * Write raw file contents to storage.
      *
