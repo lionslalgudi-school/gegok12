@@ -31,9 +31,12 @@ class PurchaseHistoryController extends Controller
             $addons = $response['data'];
             foreach ($addons as &$addon) {
                 $addon['purchase_status']=false;
-
                 if (config('g' . $addon['slug'].'.enabled', false)) {
                     $addon['purchase_status'] = true;
+                }
+                if($addon['slug']=='videoroom'){
+                        $addon['video_status'] = false;
+                        $addon['media_status'] = true;
                 }
             }
 

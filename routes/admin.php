@@ -200,6 +200,7 @@ Route::get( '/activity', 'ActivityLogController@index' );
 	Route::get( '/student/show/{name}', 'StudentDetailsController@show' );
 	Route::get( '/student/showmark/{name}', 'StudentDetailsController@showmark' );
 	Route::get( '/student/showallmark/{name}', 'StudentDetailsController@showAllMark' );
+	Route::get( '/student/show/pdf/{name}', 'StudentDetailsController@showPdf' );
 	//Route::get( '/student/comparemark/{name}', 'StudentDetailsController@compareMarks' );
 	Route::get( '/student/comparemark/{name}', 'StudentDetailsController@marksGraph' );
 	Route::get( '/student/show/fees/{name}', 'StudentDetailsController@showFees' );
